@@ -1,7 +1,8 @@
-package com.ps3ud0rand0m.burp;
+package ai.anomalousvectors.tools.burp;
 
-import com.ps3ud0rand0m.burp.ui.CollaboratorBridgePanel;
-import com.ps3ud0rand0m.burp.utils.Logger;
+import ai.anomalousvectors.tools.burp.ui.CollaboratorBridgePanel;
+import ai.anomalousvectors.tools.burp.utils.Logger;
+import ai.anomalousvectors.tools.burp.utils.ProductInfo;
 
 import burp.api.montoya.BurpExtension;
 import burp.api.montoya.MontoyaApi;
@@ -15,11 +16,11 @@ public class CollaboratorBridge implements BurpExtension {
     @Override
     public void initialize(MontoyaApi api) {
         try {
-            api.extension().setName("Collaborator Bridge");
+            api.extension().setName(ProductInfo.EXTENSION_NAME);
             Logger.initialize(api.logging());
 
             CollaboratorBridgePanel panel = new CollaboratorBridgePanel(api);
-            api.userInterface().registerSuiteTab("Collaborator Bridge", panel);
+            api.userInterface().registerSuiteTab(ProductInfo.SUITE_TAB_TITLE, panel);
 
             // Some Montoya builds may not expose an unloading hook; register if available.
             safeRegisterUnload(api, panel);

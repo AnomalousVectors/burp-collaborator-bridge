@@ -1,0 +1,48 @@
+name: Bug report
+description: Report a defect in the Collaborator Bridge extension or local HTTP API
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for reporting a bug. Please include enough detail to reproduce.
+  - type: input
+    id: burp_version
+    attributes:
+      label: Burp version and edition
+      placeholder: e.g. 2026.x Professional
+    validations:
+      required: true
+  - type: input
+    id: java_os
+    attributes:
+      label: Java version and OS
+      placeholder: e.g. JDK 22 / Windows 11
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Start the bridge on 127.0.0.1:8090
+        2. curl ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: samples
+    attributes:
+      label: Sanitized request/response samples
+      description: Include /health, /payload, or /interactions snippets when relevant.

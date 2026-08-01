@@ -1,4 +1,4 @@
-package com.ps3ud0rand0m.burp.utils;
+package ai.anomalousvectors.tools.burp.utils;
 
 import burp.api.montoya.logging.Logging;
 

@@ -3,39 +3,110 @@ name: Build & Release Burp Extension
 on:
   push:
     branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
 
 jobs:
-  build-release:
+  build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Validate Gradle Wrapper
+        uses: gradle/actions/wrapper-validation@v4
 
       - name: Set up JDK 22 (Corretto)
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '22'
           distribution: 'corretto'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Grant Gradle execute permission
         run: chmod +x gradlew
 
       - name: Build extension
-        run: gradle clean build
+        run: ./gradlew --no-daemon clean build
+
+      - name: Print failing tests from JUnit XML
+        if: failure()
+        run: |
+          python3 <<'PY'
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          results_dir = Path("build/test-results/test")
+          if not results_dir.is_dir():
+              print("No build/test-results/test directory (test task may have aborted early).")
+              raise SystemExit(0)
+
+          failures = []
+          for xml_path in sorted(results_dir.glob("TEST-*.xml")):
+              root = ET.parse(xml_path).getroot()
+              for case in root.iter("testcase"):
+                  for tag in ("failure", "error"):
+                      node = case.find(tag)
+                      if node is not None:
+                          classname = case.get("classname") or xml_path.stem.removeprefix("TEST-")
+                          name = case.get("name") or "?"
+                          message = (node.get("message") or node.text or "").strip()
+                          failures.append((f"{classname} > {name}", message))
+
+          if not failures:
+              print("No JUnit <failure>/<error> entries found under build/test-results/test/.")
+          else:
+              print(f"Failing tests ({len(failures)}):")
+              for label, message in failures:
+                  print(f"\n=== {label} ===")
+                  print(message if message else "(no message)")
+          PY
+
+      - name: Upload test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            build/reports/tests/test/
+            build/test-results/test/
+          if-no-files-found: ignore
 
       - name: Read Gradle properties
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         id: props
         run: |
-          ARCHIVES_BASENAME=$(grep '^archivesBaseName=' gradle.properties | cut -d'=' -f2)
-          VERSION=$(grep '^version=' gradle.properties | cut -d'=' -f2)
-          echo "basename=$ARCHIVES_BASENAME" >> $GITHUB_OUTPUT
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          python3 <<'PY'
+          import os
+          from pathlib import Path
+
+          props = {}
+          for line in Path("gradle.properties").read_text(encoding="utf-8").splitlines():
+              line = line.strip()
+              if not line or line.startswith("#") or "=" not in line:
+                  continue
+              key, value = line.split("=", 1)
+              props[key.strip()] = value.strip()
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
+              fh.write(f"basename={props['archivesBaseName']}\n")
+              fh.write(f"version={props['version']}\n")
+          PY
 
       - name: Delete existing release and tag
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
           gh release delete v${{ steps.props.outputs.version }} -y || true
           git push origin :refs/tags/v${{ steps.props.outputs.version }} || true
@@ -43,13 +114,15 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create or update GitHub Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         uses: ncipollo/release-action@v1
         with:
           tag: v${{ steps.props.outputs.version }}
           name: v${{ steps.props.outputs.version }}
           allowUpdates: true
           replacesArtifacts: true
+          artifactErrorsFailBuild: true
           artifacts: build/libs/${{ steps.props.outputs.basename }}-${{ steps.props.outputs.version }}.jar
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |
-            Warning: I never know what I'm doing.
+            Burp Collaborator Bridge release built from `master`.

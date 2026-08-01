@@ -1,0 +1,23 @@
+name: Feature request
+description: Suggest an enhancement to the Collaborator Bridge
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / workflow gap
+      description: What are you trying to do that is hard or impossible today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: surfaces
+    attributes:
+      label: Affected surfaces
+      description: UI, HTTP API, retention semantics, packaging, etc.

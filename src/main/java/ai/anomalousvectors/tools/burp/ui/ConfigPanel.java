@@ -1,7 +1,7 @@
-package com.ps3ud0rand0m.burp.ui;
+package ai.anomalousvectors.tools.burp.ui;
 
-import com.ps3ud0rand0m.burp.bridge.HttpBridgeServer;
-import com.ps3ud0rand0m.burp.utils.Logger;
+import ai.anomalousvectors.tools.burp.bridge.HttpBridgeServer;
+import ai.anomalousvectors.tools.burp.utils.Logger;
 import burp.api.montoya.MontoyaApi;
 import net.miginfocom.swing.MigLayout;
 
@@ -20,7 +20,7 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
-import java.awt.event.ActionEvent;
+import java.io.IOException;
 import java.io.Serial;
 
 /**
@@ -66,8 +66,9 @@ public class ConfigPanel extends JPanel implements Logger.Sink {
 
         setRunning(false);
 
-        info("Endpoints:\n  /health\n  /payload\n  /interactions");
-        info("Example: " + httpUrl(hostField.getText(), Integer.parseInt(portField.getText()), "/health"));
+        // Use appendToLog (not info) — info() is overridable via Logger.Sink.
+        appendToLog("Endpoints:\n  /health\n  /payload\n  /interactions");
+        appendToLog("Example: " + httpUrl(hostField.getText(), Integer.parseInt(portField.getText()), "/health"));
     }
 
     private JPanel buildControls() {
@@ -84,8 +85,8 @@ public class ConfigPanel extends JPanel implements Logger.Sink {
         p.add(new JLabel("Port:"));
         p.add(portField, "growx 0");
 
-        startButton.addActionListener(this::onStartClicked);
-        stopButton.addActionListener(this::onStopClicked);
+        startButton.addActionListener(_ -> startServer());
+        stopButton.addActionListener(_ -> stopServerSafely());
 
         p.add(startButton, MIG_ALIGN_LEFT);
         p.add(stopButton, MIG_ALIGN_LEFT);
@@ -103,16 +104,6 @@ public class ConfigPanel extends JPanel implements Logger.Sink {
         scroll.setBorder(BorderFactory.createTitledBorder("Log"));
         p.add(scroll, BorderLayout.CENTER);
         return p;
-    }
-
-    @SuppressWarnings("unused")
-    private void onStartClicked(ActionEvent e) {
-        startServer();
-    }
-
-    @SuppressWarnings("unused")
-    private void onStopClicked(ActionEvent e) {
-        stopServerSafely();
     }
 
     private void startServer() {
@@ -143,10 +134,10 @@ public class ConfigPanel extends JPanel implements Logger.Sink {
                 server = s;
                 Logger.logInfo("Collaborator bridge started on " + httpUrl(host, port, ""));
                 setRunning(true);
-            } catch (IllegalStateException _ ) {
+            } catch (IllegalStateException _) {
                 Logger.logError("Start failed: Collaborator disabled.");
                 setRunning(false);
-            } catch (Exception ex) {
+            } catch (IOException | RuntimeException ex) {
                 Logger.logError("Start failed: " + ex.getClass().getSimpleName() + ": " + ex.getMessage());
                 setRunning(false);
             } finally {

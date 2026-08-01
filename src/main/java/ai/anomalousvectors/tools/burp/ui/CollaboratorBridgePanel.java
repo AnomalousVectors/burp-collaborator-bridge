@@ -1,6 +1,6 @@
-package com.ps3ud0rand0m.burp.ui;
+package ai.anomalousvectors.tools.burp.ui;
 
-import com.ps3ud0rand0m.burp.utils.Logger;
+import ai.anomalousvectors.tools.burp.utils.Logger;
 import burp.api.montoya.MontoyaApi;
 
 import javax.swing.JTabbedPane;
